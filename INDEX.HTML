@@ -1,396 +1,477 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Pedidos</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      background: #f3f4f6;
-      color: #333;
-      padding: 20px;
-    }
-    h1, h2 {
-      text-align: center;
-      color: #222;
-    }
-    .container {
-        max-width: 1200px;
-        margin: auto;
-    }
-    .controls {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .main-content {
-      display: flex;
-      gap: 20px;
-      align-items: flex-start;
-    }
-    .inventory-section {
-      flex: 1;
-      min-width: 0;
-    }
-    input, select, button {
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    th {
-      background: #4f46e5;
-      color: white;
-    }
-    tr:hover {
-      background-color: #f1f5f9;
-    }
-    .error-message {
-      text-align: center;
-      color: #b91c1c;
-      font-weight: bold;
-      padding: 20px;
-      background-color: #fee2e2;
-      border: 1px solid #f87171;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-    button {
-      background-color: #4f46e5;
-      color: white;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    button:hover {
-      background-color: #4338ca;
-    }
-    button:disabled {
-      background-color: #a5b4fc;
-      cursor: not-allowed;
-    }
-    #pedido-container {
-      margin-top: 0;
-      background: white;
-      border-radius: 8px;
-      padding: 25px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      flex: 0 0 320px;
-      position: sticky;
-      top: 20px;
-    }
-    #pedido-container h2 {
-      margin-top: 0;
-      color: #4f46e5;
-    }
-    .controls-pedido {
-        margin-bottom: 15px;
-    }
-    .controls-pedido input {
-        width: 100%;
-        box-sizing: border-box;
-    }
-    #btnEnviarPedido {
-        width: 100%;
-        padding: 12px;
-        font-size: 18px;
-        font-weight: bold;
-        margin-top: 15px;
-        background-color: #16a34a;
-    }
-    #btnEnviarPedido:hover {
-        background-color: #15803d;
-    }
-    .btn-delete {
-      background-color: #ef4444;
-    }
-    .btn-delete:hover {
-      background-color: #dc2626;
-    }
-    #pedido-error {
-        color: #b91c1c;
-        margin-top: 10px;
-        text-align: center;
-        font-weight: bold;
-        height: 20px;
-    }
-    #pedidoTable td.peso-col,
-    #pedidoTable th.peso-col,
-    #pedido-peso-total {
-        text-align: right;
-    }
-    #pedido-peso-total {
-        margin-top: 10px;
-        font-weight: bold;
-    }
-    @media (max-width: 900px) {
-      .main-content {
-        flex-direction: column;
-      }
-      #pedido-container {
-        position: static;
-        width: 100%;
-        margin-top: 20px;
-      }
-    }
-  </style>
-</head>
-<body>
-
-<div class="container">
-  <h1>📦 Inventario de Productos</h1>
-
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="Buscar por nombre...">
-    <select id="categoryFilter">
-      <option value="">Todas las categorías</option>
-    </select>
-  </div>
-
-  <div class="main-content">
-    <div class="inventory-section">
-      <table id="inventoryTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Categoría</th>
-            <th>Stock</th>
-            <th>Cantidad</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="error-container"></div>
-    </div>
-
-    <div id="pedido-container">
-      <h2>🛒 Resumen del Pedido</h2>
-      <div class="controls-pedido">
-        <input type="text" id="nombrePersona" placeholder="Escribe tu nombre (requerido para el registro)">
-      </div>
-      <table id="pedidoTable">
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Cantidad</th>
-          <th class="peso-col">Peso (kg)</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody id="pedidoTbody"></tbody>
-    </table>
-    <div id="pedido-peso-total">Peso total: 0 kg</div>
-    <button id="btnEnviarPedido" onclick="enviarPedidoCompleto()">Confirmar y Enviar Pedido</button>
-      <div id="pedido-error"></div>
-    </div>
-  </div>
-</div>
-
-<script>
-    const SCRIPT_URL = "https://script.google.com/a/macros/telasreal.com/s/AKfycbwOfIlV2nZwFwmswJH7XXx3t15Php4o3fCNoK0Tc8mM-QsnJUAklwJBu4XQSVdGnwvJSQ/exec";
-    const KG_PER_ROLLO = 25;
-
-    let productos = [];
-    let pedidoActual = [];
-    const tbody = document.querySelector("#inventoryTable tbody");
-    const errorContainer = document.getElementById("error-container");
-
-    async function cargarInventario() {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Cargando inventario...</td></tr>';
-      try {
-        if (SCRIPT_URL.includes("URL_DE_TU_APPS_SCRIPT_AQUI")) {
-            throw new Error("No has configurado la URL del Apps Script.");
-        }
-        const res = await fetch(SCRIPT_URL);
-        if (!res.ok) throw new Error(`Error en la red: ${res.status}`);
-        productos = await res.json();
-        if (productos.error) throw new Error(`Error del script: ${productos.error}`);
-        mostrarProductos(productos);
-        llenarCategorias(productos);
-        errorContainer.innerHTML = '';
-      } catch (error) {
-        console.error('Error al cargar el inventario:', error);
-        tbody.innerHTML = '';
-        errorContainer.innerHTML = `<div class="error-message"><strong>Error al Cargar los Datos.</strong><br>Verifica que la URL en la variable SCRIPT_URL sea correcta y que tu script esté implementado correctamente. <br><small>Detalle: ${error.message}</small></div>`;
-      }
-    }
-
-    function mostrarProductos(lista) {
-      tbody.innerHTML = "";
-      if (lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No se encontraron productos.</td></tr>';
-        return;
-      }
-
-      lista.forEach(p => {
-        const fila = document.createElement("tr");
-        const disabled = p.stock <= 0 ? 'disabled' : '';
-        const enPedido = pedidoActual.find(item => item.id.toString() === p.id.toString());
-        const cantidadEnPedido = enPedido ? enPedido.cantidad : 1;
-
-        fila.innerHTML = `
-          <td>${p.id}</td>
-          <td>${p.nombre}</td>
-          <td>${p.categoria || "N/A"}</td>
-          <td>${p.stock}</td>
-          <td><input type="number" min="1" max="${p.stock}" value="${cantidadEnPedido}" id="qty-${p.id}" style="width:70px" ${disabled}></td>
-          <td><button onclick="agregarAlPedido('${p.id}')" ${disabled}>Agregar</button></td>
-        `;
-        tbody.appendChild(fila);
-      });
-    }
-
-    function llenarCategorias(lista) {
-      const categorias = [...new Set(lista.map(p => p.categoria).filter(Boolean))];
-      const select = document.getElementById("categoryFilter");
-      select.innerHTML = '<option value="">Todas las categorías</option>';
-      categorias.sort().forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat;
-        opt.textContent = cat;
-        select.appendChild(opt);
-      });
-    }
-
-    function filtrar() {
-      const texto = document.getElementById("searchInput").value.toLowerCase();
-      const categoria = document.getElementById("categoryFilter").value;
-      const filtrados = productos.filter(p =>
-        p.nombre.toLowerCase().includes(texto) && (!categoria || p.categoria === categoria)
-      );
-      mostrarProductos(filtrados);
-    }
-
-    document.getElementById("searchInput").addEventListener("input", filtrar);
-    document.getElementById("categoryFilter").addEventListener("change", filtrar);
-
-    function agregarAlPedido(id) {
-      const producto = productos.find(p => p.id.toString() === id.toString());
-      const cantidadInput = document.getElementById(`qty-${id}`);
-      const cantidad = parseInt(cantidadInput.value);
-
-      if (isNaN(cantidad) || cantidad <= 0 || cantidad > producto.stock) {
-        alert("Cantidad inválida. Debe ser entre 1 y " + producto.stock);
-        cantidadInput.value = 1;
-        return;
-      }
-
-      const itemExistente = pedidoActual.find(item => item.id.toString() === id.toString());
-      if (itemExistente) {
-        itemExistente.cantidad = cantidad;
-      } else {
-        pedidoActual.push({ id: producto.id, nombre: producto.nombre, cantidad: cantidad });
-      }
-      mostrarPedido();
-    }
-
-    function formatearKg(valor) {
-      return Number.isInteger(valor) ? `${valor} kg` : `${valor.toFixed(2)} kg`;
-    }
-
-    function mostrarPedido() {
-      const pedidoTbody = document.getElementById("pedidoTbody");
-      const btnEnviar = document.getElementById("btnEnviarPedido");
-      pedidoTbody.innerHTML = "";
-      const pesoTotalDiv = document.getElementById("pedido-peso-total");
-      let pesoTotal = 0;
-
-      if (pedidoActual.length === 0) {
-        pedidoTbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Tu pedido está vacío.</td></tr>';
-        btnEnviar.disabled = true;
-        pesoTotalDiv.textContent = "Peso total: 0 kg";
-      } else {
-        pedidoActual.forEach(item => {
-          const pesoItem = item.cantidad * KG_PER_ROLLO;
-          pesoTotal += pesoItem;
-          const pesoItemTexto = formatearKg(pesoItem);
-          const fila = document.createElement("tr");
-          fila.innerHTML = `
-            <td>${item.nombre}</td>
-            <td>${item.cantidad}</td>
-            <td class="peso-col">${pesoItemTexto}</td>
-            <td><button class="btn-delete" onclick="borrarDelPedido('${item.id}')">Borrar</button></td>`;
-          pedidoTbody.appendChild(fila);
-        });
-        btnEnviar.disabled = false;
-        pesoTotalDiv.textContent = `Peso total: ${formatearKg(pesoTotal)}`;
-      }
-    }
-
-    function borrarDelPedido(id) {
-      pedidoActual = pedidoActual.filter(item => item.id.toString() !== id.toString());
-      mostrarPedido();
-    }
-
-    async function enviarPedidoCompleto() {
-      const nombrePersona = document.getElementById("nombrePersona").value.trim();
-      const pedidoError = document.getElementById("pedido-error");
-      pedidoError.textContent = "";
-
-      if (!nombrePersona) {
-        pedidoError.textContent = "Por favor, ingresa tu nombre.";
-        return;
-      }
-      if (pedidoActual.length === 0) {
-        pedidoError.textContent = "Tu pedido está vacío.";
-        return;
-      }
-
-      const btnEnviar = document.getElementById("btnEnviarPedido");
-      btnEnviar.disabled = true;
-      btnEnviar.textContent = 'Procesando...';
-
-      const itemsParaEnviar = pedidoActual.map(({ id, cantidad }) => ({ id, quantity: cantidad }));
-
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: "submitOrder", nombrePersona, items: itemsParaEnviar })
-        });
-        const texto = await res.text();
-        if (texto === "OK") {
-          alert(`¡Pedido a nombre de ${nombrePersona} realizado con éxito!`);
-          pedidoActual = [];
-          document.getElementById("nombrePersona").value = "";
-          mostrarPedido();
-          await cargarInventario();
-        } else {
-            const errorData = JSON.parse(texto);
-            pedidoError.textContent = `Error del servidor: ${errorData.message || 'Error desconocido'}`;
-        }
-      } catch (error) {
-        console.error("Error al enviar el pedido:", error);
-        pedidoError.textContent = "Error de conexión. Inténtalo de nuevo.";
-      } finally {
-        if (pedidoActual.length > 0) btnEnviar.disabled = false;
-        btnEnviar.textContent = 'Confirmar y Enviar Pedido';
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        cargarInventario();
-        mostrarPedido();
-    });
-</script>
-</body>
-</html>
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/index.html b/index.html
+index 65bed16ce70e88127bc42097e7bbc5de67ee236b..68718ef8810c7d0728d747bb7c19b514076931b8 100644
+--- a/index.html
++++ b/index.html
+@@ -1,54 +1,69 @@
+ <!DOCTYPE html>
+ <html lang="es">
+ <head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <meta name="theme-color" content="#4f46e5">
++  <meta name="apple-mobile-web-app-capable" content="yes">
++  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+   <title>Registro de Pedidos</title>
++  <link rel="manifest" href="manifest.webmanifest">
++  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
++  <link rel="apple-touch-icon" href="icons/icon-192.png">
+   <style>
+     body {
+       font-family: 'Segoe UI', sans-serif;
+       margin: 0;
+       background: #f3f4f6;
+       color: #333;
+       padding: 20px;
+     }
+     h1, h2 {
+       text-align: center;
+       color: #222;
+     }
+     .container {
+         max-width: 1200px;
+         margin: auto;
+     }
+     .controls {
+       display: flex;
+       justify-content: center;
+       flex-wrap: wrap;
+       gap: 10px;
+       margin-bottom: 20px;
+     }
++    .main-content {
++      display: flex;
++      gap: 20px;
++      align-items: flex-start;
++    }
++    .inventory-section {
++      flex: 1;
++      min-width: 0;
++    }
+     input, select, button {
+       padding: 10px 14px;
+       border-radius: 8px;
+       border: 1px solid #ccc;
+       font-size: 16px;
+     }
+     table {
+       width: 100%;
+       border-collapse: collapse;
+       background: white;
+       border-radius: 8px;
+       overflow: hidden;
+       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+     }
+     th, td {
+       padding: 12px 15px;
+       text-align: left;
+       border-bottom: 1px solid #ddd;
+     }
+     th {
+       background: #4f46e5;
+       color: white;
+     }
+     tr:hover {
+       background-color: #f1f5f9;
+@@ -56,151 +71,208 @@
+     .error-message {
+       text-align: center;
+       color: #b91c1c;
+       font-weight: bold;
+       padding: 20px;
+       background-color: #fee2e2;
+       border: 1px solid #f87171;
+       border-radius: 8px;
+       margin-top: 20px;
+     }
+     button {
+       background-color: #4f46e5;
+       color: white;
+       border: none;
+       cursor: pointer;
+       transition: background-color 0.2s;
+     }
+     button:hover {
+       background-color: #4338ca;
+     }
+     button:disabled {
+       background-color: #a5b4fc;
+       cursor: not-allowed;
+     }
+     #pedido-container {
+-      margin-top: 40px;
++      margin-top: 0;
+       background: white;
+       border-radius: 8px;
+       padding: 25px;
+       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
++      flex: 0 0 320px;
++      position: sticky;
++      top: 20px;
+     }
+     #pedido-container h2 {
+       margin-top: 0;
+       color: #4f46e5;
+     }
+     .controls-pedido {
+         margin-bottom: 15px;
+     }
+     .controls-pedido input {
+         width: 100%;
+         box-sizing: border-box;
+     }
+     #btnEnviarPedido {
+         width: 100%;
+         padding: 12px;
+         font-size: 18px;
+         font-weight: bold;
+         margin-top: 15px;
+         background-color: #16a34a;
+     }
+     #btnEnviarPedido:hover {
+         background-color: #15803d;
+     }
+     .btn-delete {
+       background-color: #ef4444;
+     }
+     .btn-delete:hover {
+       background-color: #dc2626;
+     }
+     #pedido-error {
+         color: #b91c1c;
+         margin-top: 10px;
+         text-align: center;
+         font-weight: bold;
+         height: 20px;
+     }
++    #pedidoTable td.peso-col,
++    #pedidoTable th.peso-col,
++    #pedido-peso-total {
++        text-align: right;
++    }
++    #pedido-peso-total {
++        margin-top: 10px;
++        font-weight: bold;
++    }
++    .install-banner {
++      display: none;
++      margin: 20px 0;
++      padding: 16px;
++      background: #ede9fe;
++      border: 1px solid #c7d2fe;
++      border-radius: 12px;
++      text-align: center;
++      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.1);
++    }
++    .install-banner button {
++      background-color: #4f46e5;
++      border-radius: 9999px;
++      padding: 10px 18px;
++      font-size: 16px;
++      border: none;
++      color: white;
++      cursor: pointer;
++      transition: background-color 0.2s ease;
++    }
++    .install-banner button:hover {
++      background-color: #4338ca;
++    }
++    @media (max-width: 900px) {
++      .main-content {
++        flex-direction: column;
++      }
++      #pedido-container {
++        position: static;
++        width: 100%;
++        margin-top: 20px;
++      }
++    }
+   </style>
+ </head>
+ <body>
+ 
+ <div class="container">
+   <h1>📦 Inventario de Productos</h1>
+ 
+   <div class="controls">
+     <input type="text" id="searchInput" placeholder="Buscar por nombre...">
+     <select id="categoryFilter">
+       <option value="">Todas las categorías</option>
+     </select>
+   </div>
+ 
+-  <table id="inventoryTable">
+-    <thead>
+-      <tr>
+-        <th>ID</th>
+-        <th>Nombre</th>
+-        <th>Categoría</th>
+-        <th>Stock</th>
+-        <th>Cantidad</th>
+-        <th>Acción</th>
+-      </tr>
+-    </thead>
+-    <tbody></tbody>
+-  </table>
+-
+-  <div id="error-container"></div>
+-
+-  <div id="pedido-container">
+-    <h2>🛒 Resumen del Pedido</h2>
+-    <div class="controls-pedido">
+-      <input type="text" id="nombrePersona" placeholder="Escribe tu nombre (requerido para el registro)">
++  <div class="install-banner" id="installBanner">
++    <p style="margin: 0 0 12px; font-weight: 600; color: #1f2937;">Instala esta aplicación en tu dispositivo para acceder rápidamente.</p>
++    <button id="installButton">Instalar aplicación</button>
++  </div>
++
++  <div class="main-content">
++    <div class="inventory-section">
++      <table id="inventoryTable">
++        <thead>
++          <tr>
++            <th>ID</th>
++            <th>Nombre</th>
++            <th>Categoría</th>
++            <th>Stock</th>
++            <th>Cantidad</th>
++            <th>Acción</th>
++          </tr>
++        </thead>
++        <tbody></tbody>
++      </table>
++
++      <div id="error-container"></div>
+     </div>
+-    <table id="pedidoTable">
++
++    <div id="pedido-container">
++      <h2>🛒 Resumen del Pedido</h2>
++      <div class="controls-pedido">
++        <input type="text" id="nombrePersona" placeholder="Escribe tu nombre (requerido para el registro)">
++      </div>
++      <table id="pedidoTable">
+       <thead>
+         <tr>
+           <th>Producto</th>
+           <th>Cantidad</th>
++          <th class="peso-col">Peso (kg)</th>
+           <th>Acción</th>
+         </tr>
+       </thead>
+       <tbody id="pedidoTbody"></tbody>
+     </table>
++    <div id="pedido-peso-total">Peso total: 0 kg</div>
+     <button id="btnEnviarPedido" onclick="enviarPedidoCompleto()">Confirmar y Enviar Pedido</button>
+-    <div id="pedido-error"></div>
++      <div id="pedido-error"></div>
++    </div>
+   </div>
+ </div>
+ 
+ <script>
+     const SCRIPT_URL = "https://script.google.com/a/macros/telasreal.com/s/AKfycbwOfIlV2nZwFwmswJH7XXx3t15Php4o3fCNoK0Tc8mM-QsnJUAklwJBu4XQSVdGnwvJSQ/exec";
++    const KG_PER_ROLLO = 25;
+ 
+     let productos = [];
+     let pedidoActual = [];
+     const tbody = document.querySelector("#inventoryTable tbody");
+     const errorContainer = document.getElementById("error-container");
+ 
+     async function cargarInventario() {
+-      tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Cargando inventario...</td></tr>';
++      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Cargando inventario...</td></tr>';
+       try {
+         if (SCRIPT_URL.includes("URL_DE_TU_APPS_SCRIPT_AQUI")) {
+             throw new Error("No has configurado la URL del Apps Script.");
+         }
+         const res = await fetch(SCRIPT_URL);
+         if (!res.ok) throw new Error(`Error en la red: ${res.status}`);
+         productos = await res.json();
+         if (productos.error) throw new Error(`Error del script: ${productos.error}`);
+         mostrarProductos(productos);
+         llenarCategorias(productos);
+         errorContainer.innerHTML = '';
+       } catch (error) {
+         console.error('Error al cargar el inventario:', error);
+         tbody.innerHTML = '';
+         errorContainer.innerHTML = `<div class="error-message"><strong>Error al Cargar los Datos.</strong><br>Verifica que la URL en la variable SCRIPT_URL sea correcta y que tu script esté implementado correctamente. <br><small>Detalle: ${error.message}</small></div>`;
+       }
+     }
+ 
+     function mostrarProductos(lista) {
+       tbody.innerHTML = "";
+       if (lista.length === 0) {
+         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No se encontraron productos.</td></tr>';
+         return;
+       }
+ 
+@@ -244,67 +316,80 @@
+     }
+ 
+     document.getElementById("searchInput").addEventListener("input", filtrar);
+     document.getElementById("categoryFilter").addEventListener("change", filtrar);
+ 
+     function agregarAlPedido(id) {
+       const producto = productos.find(p => p.id.toString() === id.toString());
+       const cantidadInput = document.getElementById(`qty-${id}`);
+       const cantidad = parseInt(cantidadInput.value);
+ 
+       if (isNaN(cantidad) || cantidad <= 0 || cantidad > producto.stock) {
+         alert("Cantidad inválida. Debe ser entre 1 y " + producto.stock);
+         cantidadInput.value = 1;
+         return;
+       }
+ 
+       const itemExistente = pedidoActual.find(item => item.id.toString() === id.toString());
+       if (itemExistente) {
+         itemExistente.cantidad = cantidad;
+       } else {
+         pedidoActual.push({ id: producto.id, nombre: producto.nombre, cantidad: cantidad });
+       }
+       mostrarPedido();
+     }
+ 
++    function formatearKg(valor) {
++      return Number.isInteger(valor) ? `${valor} kg` : `${valor.toFixed(2)} kg`;
++    }
++
+     function mostrarPedido() {
+       const pedidoTbody = document.getElementById("pedidoTbody");
+       const btnEnviar = document.getElementById("btnEnviarPedido");
+       pedidoTbody.innerHTML = "";
++      const pesoTotalDiv = document.getElementById("pedido-peso-total");
++      let pesoTotal = 0;
++
+       if (pedidoActual.length === 0) {
+-        pedidoTbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Tu pedido está vacío.</td></tr>';
++        pedidoTbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Tu pedido está vacío.</td></tr>';
+         btnEnviar.disabled = true;
++        pesoTotalDiv.textContent = "Peso total: 0 kg";
+       } else {
+         pedidoActual.forEach(item => {
++          const pesoItem = item.cantidad * KG_PER_ROLLO;
++          pesoTotal += pesoItem;
++          const pesoItemTexto = formatearKg(pesoItem);
+           const fila = document.createElement("tr");
+           fila.innerHTML = `
+             <td>${item.nombre}</td>
+             <td>${item.cantidad}</td>
++            <td class="peso-col">${pesoItemTexto}</td>
+             <td><button class="btn-delete" onclick="borrarDelPedido('${item.id}')">Borrar</button></td>`;
+           pedidoTbody.appendChild(fila);
+         });
+         btnEnviar.disabled = false;
++        pesoTotalDiv.textContent = `Peso total: ${formatearKg(pesoTotal)}`;
+       }
+     }
+ 
+     function borrarDelPedido(id) {
+       pedidoActual = pedidoActual.filter(item => item.id.toString() !== id.toString());
+       mostrarPedido();
+     }
+ 
+     async function enviarPedidoCompleto() {
+       const nombrePersona = document.getElementById("nombrePersona").value.trim();
+       const pedidoError = document.getElementById("pedido-error");
+       pedidoError.textContent = "";
+ 
+       if (!nombrePersona) {
+         pedidoError.textContent = "Por favor, ingresa tu nombre.";
+         return;
+       }
+       if (pedidoActual.length === 0) {
+         pedidoError.textContent = "Tu pedido está vacío.";
+         return;
+       }
+ 
+       const btnEnviar = document.getElementById("btnEnviarPedido");
+       btnEnviar.disabled = true;
+       btnEnviar.textContent = 'Procesando...';
+@@ -314,32 +399,83 @@
+       try {
+         const res = await fetch(SCRIPT_URL, {
+           method: "POST",
+           body: JSON.stringify({ action: "submitOrder", nombrePersona, items: itemsParaEnviar })
+         });
+         const texto = await res.text();
+         if (texto === "OK") {
+           alert(`¡Pedido a nombre de ${nombrePersona} realizado con éxito!`);
+           pedidoActual = [];
+           document.getElementById("nombrePersona").value = "";
+           mostrarPedido();
+           await cargarInventario();
+         } else {
+             const errorData = JSON.parse(texto);
+             pedidoError.textContent = `Error del servidor: ${errorData.message || 'Error desconocido'}`;
+         }
+       } catch (error) {
+         console.error("Error al enviar el pedido:", error);
+         pedidoError.textContent = "Error de conexión. Inténtalo de nuevo.";
+       } finally {
+         if (pedidoActual.length > 0) btnEnviar.disabled = false;
+         btnEnviar.textContent = 'Confirmar y Enviar Pedido';
+       }
+     }
+ 
++    let deferredPrompt;
++    const installBanner = document.getElementById('installBanner');
++    const installButton = document.getElementById('installButton');
++    const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
++    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
++    const runningInAndroidApp = window.location.protocol === 'file:';
++
++    if (isStandalone || runningInAndroidApp) {
++      installBanner.style.display = 'none';
++    }
++
++    if (isIos && !isStandalone && !runningInAndroidApp) {
++      installBanner.style.display = 'block';
++    }
++
++    window.addEventListener('beforeinstallprompt', (event) => {
++      event.preventDefault();
++      deferredPrompt = event;
++      installBanner.style.display = 'block';
++    });
++
++    installButton.addEventListener('click', async () => {
++      if (deferredPrompt) {
++        deferredPrompt.prompt();
++        const { outcome } = await deferredPrompt.userChoice;
++        if (outcome === 'accepted') {
++          installBanner.style.display = 'none';
++        }
++        deferredPrompt = null;
++        return;
++      }
++
++      if (isIos && !isStandalone) {
++        alert('En iPhone o iPad, toca el botón Compartir y elige "Agregar a pantalla de inicio" para instalar la aplicación.');
++      }
++    });
++
++    window.addEventListener('appinstalled', () => {
++      installBanner.style.display = 'none';
++      deferredPrompt = null;
++    });
++
++    const supportsServiceWorkerScheme = ['http:', 'https:'].includes(window.location.protocol);
++    if ('serviceWorker' in navigator && supportsServiceWorkerScheme) {
++      window.addEventListener('load', () => {
++        navigator.serviceWorker.register('service-worker.js').catch((error) => {
++          console.error('Error al registrar el Service Worker:', error);
++        });
++      });
++    }
++
+     document.addEventListener('DOMContentLoaded', () => {
+         cargarInventario();
+         mostrarPedido();
+     });
+ </script>
+ </body>
+ </html>
+ 
+EOF
+)
