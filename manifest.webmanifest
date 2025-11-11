@@ -1,0 +1,28 @@
+diff --git a/manifest.webmanifest b/manifest.webmanifest
+new file mode 100644
+index 0000000000000000000000000000000000000000..33251694509deb637e09eb5f47182d43f1ee7c05
+--- /dev/null
++++ b/manifest.webmanifest
+@@ -0,0 +1,22 @@
++{
++  "name": "Pedidos Tienda",
++  "short_name": "Pedidos",
++  "description": "Gestiona el inventario y crea pedidos desde tu teléfono.",
++  "start_url": ".",
++  "display": "standalone",
++  "background_color": "#f3f4f6",
++  "theme_color": "#4f46e5",
++  "lang": "es",
++  "icons": [
++    {
++      "src": "icons/icon-192.png",
++      "sizes": "192x192",
++      "type": "image/png"
++    },
++    {
++      "src": "icons/icon-512.png",
++      "sizes": "512x512",
++      "type": "image/png"
++    }
++  ]
++}
